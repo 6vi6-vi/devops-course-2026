@@ -51,3 +51,21 @@
 - `01-clean-install` — создан сразу после установки ОС (чистая система).
 - `02-keys-configured` — создан после настройки SSH-ключей для пользователя `devops`.
 - `03-ssh-hardened` — создан после усиления защиты SSH (смена порта, отключение паролей).
+
+## 8. Веб-сервер
+- **Устанавливаемый пакет:** `nginx`
+- **Путь к конфигурации ресурса:** `/etc/nginx/sites-available/devops-site` (активирована символической ссылкой в `/etc/nginx/sites-enabled/`)
+- **Каталог ресурса:** `/var/www/devops-site`
+- **Владелец каталога:** `devops:devops`
+- **Права на каталоги и файлы:** 755 (drwxr-xr-x) для каталогов, 644 (-rw-r--r--) для файлов.
+- **Путь к сертификату:** `/etc/ssl/certs/devops.crt` (права 644, владелец root)
+- **Путь к ключу:** `/etc/ssl/private/devops.key` (права 600, владелец root)
+- **Команда формирования сертификата:**
+  ```bash
+  sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/devops.key \
+    -out /etc/ssl/certs/devops.crt \
+    -subj "/CN=devops.local" \
+    -addext "subjectAltName=DNS:devops.local"
+  ```
+- **Срок действия сертификата:** 365 дней.

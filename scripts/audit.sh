@@ -37,5 +37,31 @@ check "Политика по умолчанию для входящих - deny" 
 echo "[3] Учётные записи"
 awk -F: '$3>=1000 && $3<65534 {printf " %s (uid=%s)\n",$1,$3}' /etc/passwd
 
+echo "[4] Веб-сервер"
+check "Служба nginx активна" "active" "$(systemctl is-active nginx)"
+
+if sudo nginx -t >/dev/null 2>&1; then
+    echo " [OK] Конфигурация nginx синтаксически корректна"; ((PASS++))
+else
+    echo " [FAIL] Конфигурация nginx содержит ошибки"; ((FAIL++))
+fi
+
+if sudo openssl x509 -checkend 2592000 -noout -in /etc/ssl/certs/devops.crt >/dev/null 2>&1; then
+    echo " [OK] Сертификат действителен более 30 дней"; ((PASS++))
+else
+    echo " [FAIL] Сертификат истекает менее чем через 30 дней"; ((FAIL++))
+fi
+
+NO_WRITABLE=$(find /var/www/devops-site -perm -o+w 2>/dev/null)
+KEY_PERMS=$(sudo stat -c '%a' /etc/ssl/private/devops.key)
+
+if [[ -z "$NO_WRITABLE" ]]; then
+    echo " [OK] В каталоге ресурса нет файлов с правом записи для всех"; ((PASS++))
+else
+    echo " [FAIL] Найдены файлы с правом записи для всех: $NO_WRITABLE"; ((FAIL++))
+fi
+
+check "Права ключа TLS равны 600" "600" "$KEY_PERMS"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
