@@ -63,5 +63,19 @@ fi
 
 check "Права ключа TLS равны 600" "600" "$KEY_PERMS"
 
+echo "[5] Контейнеризация"
+check "Служба docker активна" "active" "$(systemctl is-active docker)"
+
+check "Контейнер СУБД healthy" "healthy" "$(sudo docker inspect -f '{{.State.Health.Status}}' app-db-1 2>/dev/null || echo 'not found')"
+
+BAD_PORTS=$(sudo ss -tln | awk 'NR>1 {split($4, a, ":"); port=a[length(a)]; if ((port=="5000" || port=="5432") && $4 !~ /^127\.0\.0\.1:/) print $4}')
+if [[ -z "$BAD_PORTS" ]]; then
+    echo " [OK] Порты 5000 и 5432 не доступны извне"; ((PASS++))
+else
+    echo " [FAIL] Найдены открытые порты: $BAD_PORTS"; ((FAIL++))
+fi
+
+check "Права .env равны 600" "600" "$(stat -c '%a' ~/app/.env 2>/dev/null || echo 'not found')"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
